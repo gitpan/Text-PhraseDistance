@@ -7,7 +7,7 @@ sub distance {
 	#
 	# By Leo Cacciari aka TheHobbit, <thehobbit at altern.org>
 	#
-	# Copyright (c) 2002 Leo Cacciari. All rights reserved.  This subroutine is
+	# Copyright (c) 2002,2003 Leo Cacciari. All rights reserved.  This subroutine is
 	# free software; you can redistribute it and/or modify it under the same
 	# terms as Perl itself
 
@@ -26,17 +26,115 @@ sub distance {
 	return $result;
 }
 
-
 my $phrase1="a yellow dog";
 my $phrase2="a cat,yellow";
+my $phrase3="a big yellow dog";
 my $set="abcdefghijklmnopqrstuvwxyz";
 
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance)." should be 6\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-mode=>'both'})." should be 6\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-mode=>'complementary'})." should be 1\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-mode=>'set'})." should be 5\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1]})." should be 4\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1],-mode=>'both'})." should be 4\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1],-mode=>'set'})." should be 3.5\n";
-print "The distance: ".pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1],-mode=>'complementary'})." should be 0.5\n";
+my $ko=0;
+my $test=1;
 
+if (pdistance($phrase1,$phrase2,$set,\&distance) == 6) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-mode=>'both'}) == 6) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-mode=>'complementary'}) == 1) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-mode=>'set'}) == 5) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1,0]}) == 4) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1,0],-mode=>'both'}) == 4) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1,0],-mode=>'set'}) == 3.5) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if (pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[0.5,1,0],-mode=>'complementary'}) == 0.5) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+$test++;
+if ((pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[1,0,4]}) 
+    > pdistance($phrase1,$phrase3,$set,\&distance,{-cost=>[1,0,4]})) 
+    &&
+    (pdistance($phrase1,$phrase2,$set,\&distance) 
+    < pdistance($phrase1,$phrase3,$set,\&distance))) {
+
+	print $test.". ok\n"
+
+} else {
+
+	print $test.". NO <--\n";
+	$ko=1;
+}
+
+if ($ko) {print "\nTest suite failed\n"} else {print "\nTest suite ok\n"}

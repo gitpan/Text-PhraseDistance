@@ -1,10 +1,11 @@
 package Text::PhraseDistance;
 
 use strict;
+use warnings;
 use Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-$VERSION     = '0.01';
+$VERSION     = '0.02';
 @ISA         = qw(Exporter);
 @EXPORT      = ();
 @EXPORT_OK   = qw(&pdistance);
@@ -47,97 +48,117 @@ sub _set_distance {
 	my ($refc,$set1,$set2,$distance)=@_;
 	my $string_difference_cost=$$refc[0];
 	my $positional_cost=$$refc[1];
-	my $dist=-1;
+	my $correction=$$refc[2];
 
 	if ((!scalar @$set1) && (!scalar @$set2)) {
 
 		return 0
 	}
 
-	my (%hash,%pset1,%pset2,$state,@states,@min_states,@pset1_states,@pset2_states);
+	my @matrix_distance;
+	my @matrix_preference_set1;
+	my @matrix_preference_set2;
+	my $real_dim_set=@$set1;
 
-	if ($#$set2 > $#$set1) {my @tmp=@$set2;$set2=$set1;$set1=\@tmp}
+	if ($#$set1 > $#$set2) {
 
-	foreach my $iset1 (0..$#$set1) {
+		$real_dim_set=@$set2;
+		foreach my $index (1 .. $#$set1-$#$set2) {
 
-		$pset1{$iset1}=1;
-		foreach my $iset2 (0..$#$set2) {
-
-			my $dist=&$distance($$set1[$iset1],$$set2[$iset2])*$string_difference_cost
-				 +abs($iset1-$iset2)*$positional_cost;
-			$hash{"$iset1-$iset2"}=$dist;
+			push @$set2,"";
 		}
-		foreach my $iset2 ($#$set2+1 .. $#$set1) {
 
-			$hash{"$iset1-$iset2"}=length($$set1[$iset1])*$string_difference_cost
-						+abs($iset1-$iset2)*$positional_cost;
+	} elsif ($#$set1 < $#$set2) {
+
+		$real_dim_set=@$set1;
+		foreach my $index (1 .. $#$set2-$#$set1) {
+
+			push @$set1,"";
 		}
 	}
-	foreach my $iset2 (0..$#$set2) {$pset2{$iset2}=1;}
-	foreach my $iset2 ($#$set2+1 .. $#$set1) {$pset2{$iset2}=1;}
 
-	push @states,\%hash;
-	push @min_states,'0';
-	push @pset1_states,\%pset1;
-	push @pset2_states,\%pset2;
+	my $count_distance_0=0;
+	foreach my $index_set1 (0 .. $#$set1) {
 
-	while (@states) {
+		my $distance_0=0;
+		foreach my $index_set2 (0 .. $#$set2) {
 
-		my $min=pop @min_states;
-		my $pset1=pop @pset1_states;
-		my $pset2=pop @pset2_states;
+			my $elem_set1=$$set1[$index_set1];
+			my $elem_set2=$$set2[$index_set2];
+			my $abs_index_distance=abs($index_set1 - $index_set2);
+			my $local_distance=&$distance($elem_set1,$elem_set2);
 
-		my $hash=pop @states;
+			$matrix_distance[$index_set1]
+					[$index_set2]=$local_distance
+							 *$string_difference_cost
+				     		      + $abs_index_distance
+							 *$positional_cost;
 
-		my @min;
-		my $min_local=-1;
-
-		foreach my $key (sort {$$hash{$a} <=> $$hash{$b}} keys %$hash) {
-
-			if (($$hash{$key} > $min_local) && ($min_local!=-1)) {last}
-			$min_local=$$hash{$key};
-			push @min,$key;
+			$distance_0++ if (!$local_distance);
 		}
 
-		my $dist_local=$min+$min_local;
-		if (($dist_local < $dist) or ($dist==-1)) {
+		$count_distance_0++ if ($distance_0);
+	}
 
-			foreach my $key_min (@min) {
+	foreach my $index_set1 (0 .. $#$set1) {
 
-				my %hash_tmp=%$hash;
-				my %pset1=%$pset1;
-				my %pset2=%$pset2;
+		$matrix_preference_set1[$index_set1]=[
 
-				my ($iset1,$iset2)=split /\-/,$key_min;
+	        				sort { 
+                             				$matrix_distance[ $index_set1 ][ $b ]
+                                 				<=>
+			        	                $matrix_distance[ $index_set1 ][ $a ]
 
-				foreach my $key (keys %pset2) {
+		        		             } 0 .. $#$set2 
+                		  	];
 
-					delete $hash_tmp{"$iset1-$key"};
-				}
-				delete $pset1{$iset1};
+		$matrix_preference_set2[$index_set1]=[
 
-				foreach my $key (keys %pset1) {
+	        				sort { 
+                             				$matrix_distance[ $b ][ $index_set1 ]
+                                	 			<=>
+				                        $matrix_distance[ $a ][ $index_set1 ]
 
-					delete $hash_tmp{"$key-$iset2"};
-				}
-				delete $pset2{$iset2};
+			        	             } 0 .. $#$set1
+        	        	  	];
+	}
 
-				if (scalar keys %hash_tmp) {
+	my @unpaired_set1=(0..$#$set1);
+	my %married_set2=();
 
-					push @states,\%hash_tmp;
-					push @min_states,$dist_local;
+	while (@unpaired_set1) {
 
-					push @pset1_states,\%pset1;
-					push @pset2_states,\%pset2;
+		my $set1_element=pop @unpaired_set1;
+		my $set2_element=pop @{$matrix_preference_set1[$set1_element]};
 
-				} else {
+		my $current_married=$married_set2{$set2_element};
+		if (defined $current_married) {
 
-					$dist=$dist_local;
-				}
+			if ($matrix_preference_set2[$set2_element][$set1_element] <
+			    $matrix_preference_set2[$set2_element][$current_married]) {
+
+				push @unpaired_set1,$current_married;
+
+				$married_set2{$set2_element}=$set1_element;
+
+			} else {
+
+				push @unpaired_set1,$set1_element;
 			}
+
+		} else {
+
+			$married_set2{$set2_element}=$set1_element;
 		}
 	}
 
+	my $dist;
+	foreach my $set2_element (keys %married_set2) {
+
+		$dist+=$matrix_distance[$married_set2{$set2_element}][$set2_element];
+	}
+
+	$dist+=abs($real_dim_set-$count_distance_0)*$correction;
 	return $dist;
 }
 
@@ -170,6 +191,14 @@ sub pdistance {
 
            					require Carp;
 				      		Carp::croak("Text::PhraseDistance: -cost option requires an array");
+
+					} else {
+
+						if (@$cost < 3) {
+
+							warn "Text::PhraseDistance: array cost not well formed, using default";
+							$cost=undef;
+						}
 					}
 
 				} elsif ($key eq "-mode") {
@@ -185,8 +214,8 @@ sub pdistance {
 		}
 	}
 
-	$cost ||= [1,1];
-	$mode='both' if ($mode eq '');
+	$cost ||= [1,1,0];
+	$mode='both' if (!defined $mode);
 
 	my $pdistance;
 
@@ -303,17 +332,57 @@ This 2 components of the phrase distance (i.e. the string distance and the
 positional distance) can have a different cost from the default (that is 1 for both)
 to give your own type of phrase distance (see below for the syntax).
 
+There is a third component: a cost that weighs on the phrases that have 
+less exact matches.
+
+For example 
+
+"dinning lamp on" compared with "living lamp on"
+
+has 2 exact matches ("lamp","on") on 3 words of the 2nd phrase.
+
+But
+
+"living room lamp on" compared with "living lamp on"
+
+has 3 exact matches ("living","lamp","on") on 3 words of the 2nd phrase.
+
+In this case the phrase "dinning lamp on" has 1 "degree" of disavantage 
+as to "living lamp on" when compared with "living room lamp on".
+
+A visual example is:
+
+  --------   ------   ----
+ | living | | lamp | | on |
+  --------   ------   ----
+
+             ------   ----
+   dinning  | lamp | | on |
+             ------   ----
+
+  --------        ------   ----
+ | living | room | lamp | | on |
+  --------        ------   ----
+
+
+"living lamp on" has 3 components of "living lamp on", but
+"dinning lamp on" has only 2 components so, with this third component
+of the distance, it will be penalized.
+
+This 3rd component is disabled by default (i.e. it has a 0 cost), but
+it can be enabled with custom cost (see below for the syntax).
+In this case, the string distance used MUST define the exact match with cost 0.
+
 By default, this module sums the phrase distance from the words from the set 
 (i.e. formed by the defined set of characters) and the phrase distance calculated
 from the "words" belonging the complementary set. In order to change this behaviour, 
 see below.
 
-The phrase distance implemented in this module is very slow because it
-calculates the string distance n x m times, where n is the number of words in
-the first phrase and m is the number of words in the second one.
-Moreover, if there are a lot of minimums (i.e. pair of strings that have the smallest 
-phrase distance in that moment), the algorithm has to do more iterations to find 
-the best choice.
+The algorithm used to find the distance is the "Stable marriage problem" one.
+This is a matching algorithm, used to harmonize the elements of two sets
+on the ground of the preference relationships (in this case
+the string distance of single "words" plus the positional distance plus
+eventually the exact match weight).
 
 
 =head2 USAGE
@@ -369,36 +438,42 @@ like this:
 
 =head2 OPTIONAL PARAMETERS
 
- pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[1,0],-mode=>'set'});
+ pdistance($phrase1,$phrase2,$set,\&distance,{-cost=>[1,0,3],-mode=>'set'});
 
  -mode	
  accepted values are: 	
 	complementary	means that the distance is calculated only
 			from the "words" from the complementary set
 					
-	both	default, the distance is calculated from both sets
+	both	the distance is calculated from both sets
 
 	set	means that the distance is calculated only
 		from the "words" from the given set
 
+ Default mode is 'both'.
+
  -cost
- accepted value is an array with 2 elements: first is the cost for
- the string distance and the second is the cost for positional distance.
- Default array is [1,1] .
+ accepted value is an array with 3 elements: first is the cost for
+ the string distance, the second is the cost for positional distance
+ and the third is the cost to penalize the phrases that have less exact 
+ matches.
+
+ Default array is [1,1,0].
 
 
 =head1 THANKS
 
-Many thanks to Stefano L. Rodighiero <F<larsen at perlmonk.org>> and 
-to D. Frankowski for the suggestions.
+Many thanks to Stefano L. Rodighiero <F<larsen at perlmonk.org>> for 
+the support and part of the code, and to D. Frankowski and B. Winter 
+for the suggestions.
 
 
 =head1 AUTHOR
 
-Copyright 2002 Dree Mistrut <F<dree@friul.it>>
+Copyright 2002,2003 Dree Mistrut <F<dree@friuli.to>>
 
 This package is free software and is provided "as is" without express
-or implied warranty.  You can redistribute it and/or modify it under 
+or implied warranty. You can redistribute it and/or modify it under 
 the same terms as Perl itself.
 
 
@@ -408,4 +483,5 @@ C<Text::Levenshtein>, C<Text::WagnerFischer>
 
 
 =cut
+
 

@@ -1,7 +1,19 @@
 Change file for Text::PhraseDistance
-Dree Mistrut <dree@friul.it>
+Dree Mistrut <dree@friuli.to>
 
-Version 0.0.1 : 2002/08/13
+Version 0.02 : 2003/01/13
+
+   Changed algorithm. Due to performance issues, the Branch and Bound 
+   Depth Search First algorithm used to find the best distance is no 
+   longer used. Now is used a "Stable marriage problem" algorithm 
+   (thanks to larsen).
+
+   Added cost to penalize the phrases that have less exact matches.
+
+   Few minor issues.
+
+
+Version 0.01 : 2002/08/13
 
    No changes -- initial release
 

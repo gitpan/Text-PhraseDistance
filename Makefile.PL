@@ -3,6 +3,6 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
 	      NAME	=> 'Text::PhraseDistance',
-	      VERSION	=> '0.01',
+	      VERSION	=> '0.02',
 	      LINKTYPE	=> '$(INST_PM)',
 	     );
