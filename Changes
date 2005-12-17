@@ -1,6 +1,12 @@
 Change file for Text::PhraseDistance
 Dree Mistrut <dree@friuli.to>
 
+Version 0.03: 2005/12/01
+
+	Maintainer of the code is now Davide Bergamini.
+	He will look at the code and see how to improve it
+	and of course make some test.
+
 Version 0.02 : 2003/01/13
 
    Changed algorithm. Due to performance issues, the Branch and Bound 

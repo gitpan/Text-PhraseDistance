@@ -5,7 +5,7 @@ use warnings;
 use Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-$VERSION     = '0.02';
+$VERSION     = '0.03';
 @ISA         = qw(Exporter);
 @EXPORT      = ();
 @EXPORT_OK   = qw(&pdistance);
@@ -471,6 +471,8 @@ for the suggestions.
 =head1 AUTHOR
 
 Copyright 2002,2003 Dree Mistrut <F<dree@friuli.to>>
+
+Mantainer of the code is Davide Bergamini <F<davidebe75 atsign yahoo dotpoint it>>
 
 This package is free software and is provided "as is" without express
 or implied warranty. You can redistribute it and/or modify it under 
